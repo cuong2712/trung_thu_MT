@@ -60,31 +60,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function playMokugyoSFX() {
+  // Preloaded Mokugyo Wooden Fish Sound
+  const mokugyoAudio = new Audio('assets/audio/mo.wav');
+  mokugyoAudio.preload = 'auto';
+
+  function playSynthMokugyo() {
     try {
       initAudioCtx();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(620, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.08);
+      osc.frequency.setValueAtTime(560, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.12);
 
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+      gain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
 
-      gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-
-      osc.connect(filter);
-      filter.connect(gain);
+      osc.connect(gain);
       gain.connect(audioCtx.destination);
 
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.12);
+      osc.stop(audioCtx.currentTime + 0.18);
     } catch (e) {
-      console.log('Mokugyo audio error', e);
+      console.log('Synth error', e);
+    }
+  }
+
+  function playMokugyoSFX() {
+    try {
+      // Clone audio node for zero-delay rapid tapping
+      const sound = mokugyoAudio.cloneNode();
+      sound.volume = 1.0;
+      const playPromise = sound.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          playSynthMokugyo();
+        });
+      }
+    } catch (e) {
+      playSynthMokugyo();
     }
   }
 
