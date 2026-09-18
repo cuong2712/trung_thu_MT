@@ -90,7 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 2. MULTI-PROFILE INITIALIZATION ---
   const urlParams = new URLSearchParams(window.location.search);
-  const rawParam = (urlParams.get('to') || urlParams.get('user') || 'thao').toLowerCase();
+  const rawParam = (
+    window.FORCE_PROFILE ||
+    urlParams.get('to') ||
+    urlParams.get('user') ||
+    (window.location.pathname.toLowerCase().includes('trang') ? 'trang' : 'thao')
+  ).toLowerCase();
   const activeKey = (rawParam === 'trang' || rawParam === 'thutrang' || rawParam === 'lop') ? 'trang' : 'thao';
   const profile = (typeof PROFILES_DATA !== 'undefined' && PROFILES_DATA[activeKey]) ? PROFILES_DATA[activeKey] : PROFILES_DATA['thao'];
 
