@@ -1597,41 +1597,6 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Flood of Agree Buttons When Rejecting > 5 Times */
-.contract-flood-btn {
-  position: fixed;
-  z-index: 2500;
-  padding: 12px 22px;
-  font-size: 0.95rem;
-  font-weight: 800;
-  font-family: var(--font-main);
-  color: #0b0f24;
-  background: linear-gradient(135deg, #ffe066 0%, #ffbe3b 50%, #f69d3c 100%);
-  border: 2px solid #fff;
-  border-radius: 50px;
-  cursor: pointer;
-  box-shadow: 0 8px 30px rgba(255, 190, 59, 0.8), 0 0 20px #ff4757;
-  animation: floodPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, floodPulse 1.2s infinite alternate;
-  transition: transform 0.2s ease;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.contract-flood-btn:hover {
-  transform: scale(1.15) !important;
-  box-shadow: 0 12px 40px rgba(255, 200, 55, 1), 0 0 30px #ff4757;
-}
-
-@keyframes floodPop {
-  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
-  100% { transform: scale(1) rotate(var(--rot, 0deg)); opacity: 1; }
-}
-
-@keyframes floodPulse {
-  0% { box-shadow: 0 8px 25px rgba(255, 190, 59, 0.6); }
-  100% { box-shadow: 0 12px 35px rgba(255, 71, 87, 0.9), 0 0 25px #ffe066; }
-}
-
 /* ===================================================
    RESPONSIVE QUERIES
    =================================================== */
