@@ -1,16 +1,13 @@
 /**
- * Main Application Logic for Mai Thảo's Mid-Autumn Celebration Web
- * Interactive features:
- * 1. Intro curtain & journey launch
- * 2. Royal letter interactions & procedural SFX
- * 3. Polaroid gallery modal lightbox
- * 4. Mooncake cutting fortune generator
- * 5. Flying Sky Lantern release system
+ * Main Application Logic for Mid-Autumn Celebration Web
+ * Supports dynamic multi-profiles:
+ * - Default / ?to=thao : Mai Thảo ("Thảo Chim To")
+ * - ?to=trang          : Thu Trang ("Lốp Siêu Cấp")
  */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // --- PROCEDURAL SOUND SYNTHESIZER (Web Audio API) ---
+  // --- 1. PROCEDURAL SOUND SYNTHESIZER (Web Audio API) ---
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
 
@@ -29,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
@@ -45,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function playChimeSFX() {
     try {
       initAudioCtx();
-      const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+      const notes = [523.25, 659.25, 783.99, 1046.50];
       notes.forEach((freq, i) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -63,7 +60,162 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- 1. INTRO OVERLAY & JOURNEY START ---
+  function playMokugyoSFX() {
+    try {
+      initAudioCtx();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(620, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.08);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    } catch (e) {
+      console.log('Mokugyo audio error', e);
+    }
+  }
+
+  // --- 2. MULTI-PROFILE INITIALIZATION ---
+  const urlParams = new URLSearchParams(window.location.search);
+  const rawParam = (urlParams.get('to') || urlParams.get('user') || 'thao').toLowerCase();
+  const activeKey = (rawParam === 'trang' || rawParam === 'thutrang' || rawParam === 'lop') ? 'trang' : 'thao';
+  const profile = (typeof PROFILES_DATA !== 'undefined' && PROFILES_DATA[activeKey]) ? PROFILES_DATA[activeKey] : PROFILES_DATA['thao'];
+
+  function applyProfile(p) {
+    // 1. Page Title & Meta
+    document.title = p.pageTitle;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', p.metaDesc);
+
+    // 2. Intro Overlay
+    const introRecipient = document.querySelector('.intro-recipient');
+    if (introRecipient) introRecipient.textContent = p.name;
+    const introNickname = document.querySelector('.intro-nickname');
+    if (introNickname) introNickname.innerHTML = p.nickname;
+
+    // 3. Floating Vinyl Player
+    const vinylArt = document.querySelector('.vinyl-art');
+    if (vinylArt) vinylArt.src = p.vinylAvatar;
+
+    // 4. Hero Section
+    const heroTagline = document.querySelector('.hero-tagline');
+    if (heroTagline) heroTagline.textContent = p.heroTagline;
+    const heroTitle = document.querySelector('.hero-title');
+    if (heroTitle) heroTitle.innerHTML = p.heroTitle;
+    const heroSubtitle = document.querySelector('.hero-subtitle');
+    if (heroSubtitle) heroSubtitle.innerHTML = p.heroSubtitle;
+
+    const badgesRow = document.querySelector('.badges-row');
+    if (badgesRow && p.badges) {
+      badgesRow.innerHTML = p.badges.map(b => `<span class="badge">${b}</span>`).join('');
+    }
+
+    // 5. Royal Letter
+    const letterAvatar = document.querySelector('.letter-avatar');
+    if (letterAvatar) letterAvatar.src = p.avatar;
+    const letterMetaH3 = document.querySelector('.letter-meta h3');
+    if (letterMetaH3) letterMetaH3.textContent = p.letterRecipientTitle;
+    const aliasTag = document.querySelector('.alias-tag');
+    if (aliasTag) aliasTag.innerHTML = p.letterAliasTag;
+    const greetingLead = document.querySelector('.greeting-lead');
+    if (greetingLead) greetingLead.textContent = p.letterGreetingLead;
+
+    const letterBody = document.querySelector('.letter-body');
+    if (letterBody && p.letterParagraphs) {
+      const pElements = letterBody.querySelectorAll('p:not(.greeting-lead):not(.letter-signature)');
+      if (pElements.length >= 2) {
+        pElements[0].innerHTML = p.letterParagraphs[0];
+        pElements[1].innerHTML = p.letterParagraphs[1];
+      }
+    }
+
+    const letterWishesUl = document.querySelector('.letter-highlight-box ul');
+    if (letterWishesUl && p.letterFiveWishes) {
+      letterWishesUl.innerHTML = p.letterFiveWishes.map(w => `<li>${w}</li>`).join('');
+    }
+
+    // 6. Wooden Fish Section
+    const woodenFishHeading = document.querySelector('.wooden-fish-section .section-heading h2');
+    if (woodenFishHeading) woodenFishHeading.textContent = p.woodenFishTitle;
+    const woodenFishDesc = document.querySelector('.wooden-fish-section .heading-desc');
+    if (woodenFishDesc) woodenFishDesc.textContent = p.woodenFishDesc;
+
+    // 7. Polaroid Gallery Section
+    const polaroidHeading = document.querySelector('.gallery-section .section-heading h2');
+    if (polaroidHeading) polaroidHeading.textContent = p.polaroidSectionTitle;
+
+    const polaroidRow = document.querySelector('.polaroid-row');
+    if (polaroidRow && p.polaroidPhotos) {
+      polaroidRow.innerHTML = p.polaroidPhotos.map((photo, i) => `
+        <div class="polaroid-card polaroid-${(i % 5) + 1}" data-index="${i}">
+          <div class="wooden-peg"></div>
+          <div class="polaroid-inner">
+            <div class="polaroid-img-box">
+              <img src="${photo.img}" alt="${photo.title}" loading="lazy">
+            </div>
+            <div class="polaroid-caption">
+              <p class="caption-title">${photo.captionTitle}</p>
+              <p class="caption-desc">${photo.desc}</p>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 8. Fortune Mooncake
+    const fortuneHeadingDesc = document.querySelector('.fortune-section .heading-desc');
+    if (fortuneHeadingDesc) fortuneHeadingDesc.textContent = p.fortuneSectionDesc;
+
+    // 9. Sky Lantern
+    const wishHeading = document.querySelector('.wish-section .section-heading h2');
+    if (wishHeading) wishHeading.textContent = p.wishSectionTitle;
+    const rabbitSpeech = document.querySelector('.rabbit-speech');
+    if (rabbitSpeech) rabbitSpeech.textContent = p.wishRabbitSpeech;
+    const wishLabel = document.querySelector('.wish-label');
+    if (wishLabel) wishLabel.textContent = p.wishInputLabel;
+    const lanternCounterWrap = document.querySelector('.wishes-released-counter');
+    if (lanternCounterWrap) lanternCounterWrap.innerHTML = p.wishCounterText;
+
+    // 10. Friendship Contract
+    const contractTerms = document.querySelector('.contract-terms');
+    if (contractTerms) {
+      const pTags = contractTerms.querySelectorAll('p');
+      if (pTags.length >= 2) {
+        pTags[1].innerHTML = `<strong>Bên B:</strong> ${p.contractPartyB}`;
+      }
+      const ol = contractTerms.querySelector('ol');
+      if (ol && p.name) {
+        ol.innerHTML = `
+          <li>Sau mùa Trung Thu này, mỗi khi có dịp liên hoan, Bên B (${p.name}) sẽ vui vẻ bao Bên A ít nhất 01 chầu buffet nướng hoặc trà sữa full thạch!</li>
+          <li>Bên B không được phép khiếu nại về biệt danh "${p.aliasOnly}" vì đây đã là di sản văn hóa tinh thần không thể tách rời của nhóm bạn!</li>
+          <li>Bên B cam kết luôn vui tươi, xinh đẹp, không được dỗi vô cớ, nếu dỗi sẽ bị phạt 100k sung vào quỹ ăn vặt.</li>
+          <li>Tình bạn giữa hai bên có thời hạn bảo hành: <strong>VÔ CỰC (Suốt Đời)</strong>.</li>
+        `;
+      }
+    }
+
+    // 11. Footer
+    const footerText = document.querySelector('.footer-text');
+    if (footerText) footerText.innerHTML = p.footerNote;
+  }
+
+  // Apply profile immediately
+  applyProfile(profile);
+
+  // --- 3. INTRO OVERLAY & JOURNEY START ---
   const introOverlay = document.getElementById('introOverlay');
   const startJourneyBtn = document.getElementById('startJourneyBtn');
 
@@ -72,23 +224,20 @@ document.addEventListener('DOMContentLoaded', () => {
       initAudioCtx();
       playChimeSFX();
 
-      // Start Background Music
       if (window.BGM_PLAYER) {
         window.BGM_PLAYER.play();
       }
 
-      // Fade out overlay
       introOverlay.classList.add('fade-out');
       setTimeout(() => {
         introOverlay.style.display = 'none';
       }, 800);
 
-      // Launch celebratory initial fireworks/lanterns
       spawnHearts(window.innerWidth / 2, window.innerHeight / 2, 20);
     });
   }
 
-  // --- 2. ROYAL LETTER ACTIONS (HEARTS & CHEER) ---
+  // --- 4. ROYAL LETTER ACTIONS (HEARTS & CHEER) ---
   const sendLoveBtn = document.getElementById('sendLoveBtn');
   const heartCountSpan = document.getElementById('heartCount');
   const playCheerBtn = document.getElementById('playCheerBtn');
@@ -115,12 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function spawnHearts(x, y, count = 6) {
-    const emojis = ['💖', '❤️', '🥮', '✨', '🥰', '🌕'];
+    const emojis = ['💖', '❤️', '🥮', '✨', '🥰', '🌕', '🛞'];
     for (let i = 0; i < count; i++) {
       const heart = document.createElement('div');
       heart.className = 'floating-heart';
       heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-      
+
       const dx = (Math.random() - 0.5) * 200 + 'px';
       const dy = -(Math.random() * 160 + 60) + 'px';
       heart.style.setProperty('--dx', dx);
@@ -159,35 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- 3. POLAROID GALLERY LIGHTBOX ---
-  const polaroidData = [
-    {
-      img: 'assets/images/thao_1.png',
-      title: 'Khoảnh Khắc Mỹ Nhân ✌️',
-      desc: 'Nháy mắt một cái làm xiêu lòng bao chàng trai, nhưng bạn bè thì thấy hơi sến súa! Dẫu vậy vẫn phải công nhận bức này thần thái đỉnh cao!'
-    },
-    {
-      img: 'assets/images/thao_2.png',
-      title: 'Chuyên Gia Sống Ảo 📱',
-      desc: 'Đứng trước gương chỉnh dáng 1 tiếng rưỡi chỉ để chọn ra 1 tấm chân dài miên man triệu like này. Công sức không uổng phí!'
-    },
-    {
-      img: 'assets/images/thao_3.png',
-      title: 'Nụ Cười Tỏa Nắng 🌸',
-      desc: 'Những lúc dịu dàng không mắng mỏ bạn bè thì nhìn cũng nết na, hiền thục, chuẩn thục nữ con nhà lành phết chứ đùa!'
-    },
-    {
-      img: 'assets/images/thao_4.png',
-      title: 'Chiến Thần Đồ Nướng 🥩',
-      desc: 'Tâm hồn ăn uống vô đáy: "Tao chỉ ăn nốt miếng thịt này thôi rồi mai tao giảm cân thật mà!" - Câu nói dối kinh điển nhất thế kỷ!'
-    },
-    {
-      img: 'assets/images/thao_5.png',
-      title: 'Nỗi Đau Deadline 💻',
-      desc: 'Gương mặt bất lực trước deadline công việc nhưng vẫn kiên cường cày cuốc vì một tương lai sớm thành phú bà bao bạn bè đi du lịch!'
-    }
-  ];
-
+  // --- 5. POLAROID GALLERY LIGHTBOX ---
   const lightboxModal = document.getElementById('lightboxModal');
   const lightboxImg = document.getElementById('lightboxImg');
   const lightboxTitle = document.getElementById('lightboxTitle');
@@ -195,19 +316,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxCloseBtn = document.getElementById('lightboxCloseBtn');
   const lightboxBackdrop = document.getElementById('lightboxBackdrop');
 
-  document.querySelectorAll('.polaroid-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const idx = parseInt(card.getAttribute('data-index'), 10);
-      const data = polaroidData[idx];
-      if (data) {
-        lightboxImg.src = data.img;
-        lightboxTitle.textContent = data.title;
-        lightboxDesc.textContent = data.desc;
-        lightboxModal.classList.add('active');
-        playBellSFX();
-      }
+  function bindPolaroidClicks() {
+    document.querySelectorAll('.polaroid-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const idx = parseInt(card.getAttribute('data-index'), 10);
+        const data = profile.polaroidPhotos[idx];
+        if (data) {
+          lightboxImg.src = data.img;
+          lightboxTitle.textContent = data.title;
+          lightboxDesc.textContent = data.desc;
+          lightboxModal.classList.add('active');
+          playBellSFX();
+        }
+      });
     });
-  });
+  }
+
+  bindPolaroidClicks();
 
   function closeLightbox() {
     lightboxModal.classList.remove('active');
@@ -219,40 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeLightbox();
   });
 
-  // --- 4. FORTUNE MOONCAKE (CẮT BÁNH RÚT QUẺ) ---
-  const fortunes = [
-    {
-      stamp: 'ĐẠI CÁT',
-      title: '🥮 Quẻ Số 1: THẦN TÀI GÕ CỬA (Hệ Phú Bà)',
-      content: 'Mùa thu này tài lộc của Mai Thảo sẽ bất ngờ tăng vọt! Tiền bạc đổ vào túi ào ào như nước mùa lũ. Sắp đạt tới cảnh giới đi shopping không cần nhìn giá!',
-      advice: '✨ Lời khuyên vàng: Nhớ bao bạn thân ăn lẩu nướng để lộc lá không bị phân tán nhé!'
-    },
-    {
-      stamp: 'THƯỢNG CÁT',
-      title: '💖 Quẻ Số 2: TÌNH DUYÊN NỞ HOA (Hệ Thoát Ế)',
-      content: 'Chàng bạch mã hoàng tử của mày đang phi nước đại về đích. Mùa trăng này khả năng cao sẽ có người tới đón đi chơi Trung Thu, chuẩn bị váy vóc xúng xính đi!',
-      advice: '✨ Lời khuyên vàng: Bớt đanh đá với cà khịa bạn thân lại 10% thì chàng sẽ xuất hiện sớm hơn!'
-    },
-    {
-      stamp: 'ĐẠI LỢI',
-      title: '🥩 Quẻ Số 3: CHIẾN THẦN BẤT TỬ (Hệ Ăn Uống)',
-      content: 'Nhận được năng lượng vũ trụ siêu cấp: Ăn 10 cái bánh Trung Thu thập cẩm trứng muối mà vòng eo vẫn con kiến 58cm, cơ thể tự động chuyển mỡ thành năng lượng xinh đẹp!',
-      advice: '✨ Lời khuyên vàng: Cứ tự tin ăn uống thả ga, đừng để cơn thèm làm mờ đi vẻ đẹp!'
-    },
-    {
-      stamp: 'ĐẶC BIỆT',
-      title: '👑 Quẻ Số 4: ĐỆ NHẤT THƯƠNG HIỆU (Hệ "Chim To")',
-      content: 'Dù ở đâu, làm gì thì danh hiệu "Thảo Chim To" vẫn mãi là biểu tượng tình bạn bất diệt không ai thay thế được. Mày luôn là trung tâm của mọi niềm vui trong nhóm!',
-      advice: '✨ Lời khuyên vàng: Hãy tiếp tục lan tỏa sự lầy lội và nụ cười rạng rỡ này đến mọi người!'
-    },
-    {
-      stamp: 'BÌNH AN',
-      title: '🌟 Quẻ Số 5: BẤT BẠI TRƯỚC DEADLINE (Hệ Chăm Chỉ)',
-      content: 'Sếp sẽ tự dưng thấy mày đáng yêu lạ thường, đồng nghiệp hỗ trợ nhiệt tình, deadline tự động kéo dài ra cho mày thảnh thơi vừa làm vừa lướt TikTok!',
-      advice: '✨ Lời khuyên vàng: Làm việc hết mình, chơi hết nấc, ngủ đủ giấc là vạn sự hanh thông!'
-    }
-  ];
-
+  // --- 6. FORTUNE MOONCAKE (CẮT BÁNH RÚT QUẺ) ---
   let currentFortuneIndex = -1;
   const mooncakeInteractive = document.getElementById('mooncakeInteractive');
   const fortuneTitle = document.getElementById('fortuneTitle');
@@ -268,14 +360,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       mooncakeInteractive.classList.remove('slicing');
 
-      // Pick next or random fortune
+      const fortunesList = profile.fortunes;
       let nextIdx;
       do {
-        nextIdx = Math.floor(Math.random() * fortunes.length);
-      } while (nextIdx === currentFortuneIndex && fortunes.length > 1);
-      
+        nextIdx = Math.floor(Math.random() * fortunesList.length);
+      } while (nextIdx === currentFortuneIndex && fortunesList.length > 1);
+
       currentFortuneIndex = nextIdx;
-      const f = fortunes[currentFortuneIndex];
+      const f = fortunesList[currentFortuneIndex];
 
       fortuneTitle.textContent = f.title;
       fortuneContent.textContent = f.content;
@@ -294,14 +386,13 @@ document.addEventListener('DOMContentLoaded', () => {
     cutAgainBtn.addEventListener('click', cutMooncake);
   }
 
-  // --- 5. SKY LANTERN WISH RELEASE SYSTEM ---
+  // --- 7. SKY LANTERN WISH RELEASE SYSTEM ---
   const wishInput = document.getElementById('wishInput');
   const releaseLanternBtn = document.getElementById('releaseLanternBtn');
   const lanternCountEl = document.getElementById('lanternCount');
   const flyingSky = document.getElementById('flyingLanternsSky');
-  let totalLanterns = 18;
+  let totalLanterns = (activeKey === 'trang') ? 22 : 18;
 
-  // Preset buttons
   document.querySelectorAll('.quick-tag').forEach((tag) => {
     tag.addEventListener('click', () => {
       const text = tag.getAttribute('data-text');
@@ -313,33 +404,29 @@ document.addEventListener('DOMContentLoaded', () => {
   function releaseLantern() {
     let text = wishInput.value.trim();
     if (!text) {
-      text = 'Chúc Mai Thảo luôn xinh đẹp, hạnh phúc và vạn sự đại cát! 🥮✨';
+      text = profile.defaultWish;
     }
 
     totalLanterns += 1;
-    lanternCountEl.textContent = totalLanterns;
+    if (lanternCountEl) lanternCountEl.textContent = totalLanterns;
     playBellSFX();
 
-    // Create Lantern Element
     const lantern = document.createElement('div');
     lantern.className = 'floating-sky-lantern';
-    
-    // Randomize horizontal start position
-    const randomLeft = Math.random() * 70 + 15; // 15% to 85%
+
+    const randomLeft = Math.random() * 70 + 15;
     lantern.style.left = `${randomLeft}vw`;
 
     lantern.innerHTML = `
-      <div class="lantern-orb">🏮 Thảo</div>
+      <div class="lantern-orb">${profile.lanternTagPrefix}</div>
       <div class="lantern-text-tag">${text}</div>
     `;
 
     flyingSky.appendChild(lantern);
     spawnHearts(window.innerWidth * (randomLeft / 100), window.innerHeight * 0.8, 6);
 
-    // Clear input
     wishInput.value = '';
 
-    // Remove lantern after animation finishes
     setTimeout(() => {
       lantern.remove();
     }, 12500);
@@ -355,55 +442,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- 6. GÕ MÕ GIẢI NGHIỆP & TÍCH ĐỨC CHO THẢO ---
-  function playMokugyoSFX() {
-    try {
-      initAudioCtx();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
-
-      osc.type = 'sine';
-      // Low wooden thud frequency sweep
-      osc.frequency.setValueAtTime(620, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.08);
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(800, audioCtx.currentTime);
-
-      gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.12);
-    } catch (e) {
-      console.log('Mokugyo audio error', e);
-    }
-  }
-
+  // --- 8. GÕ MÕ GIẢI NGHIỆP & TÍCH ĐỨC ---
   const woodenFishBtn = document.getElementById('woodenFishBtn');
   const fishCounter = document.getElementById('fishCounter');
   const fishRankBadge = document.getElementById('fishRankBadge');
   let meritCount = 68;
-
-  const meritBuffs = [
-    '+1 Công Đức 🙏',
-    '+1 Tỷ Tiền Mặt Vào Ví 💸',
-    '-5kg Mỡ Bụng Đón Thu 💃',
-    '+1 Anh Bồ 6 Múi 1m85 💖',
-    'Deadline Tự Động Biến Mất 🚀',
-    '+999% Độ Xinh Gái 🌸',
-    '+1 Chầu Lẩu Nướng Bạn Thân Bao 🥩',
-    'Tăng 200% Độ "Chim To" 🐥',
-    '+1 Vé Trúng Độc Đắc 🎟️',
-    'Thần Thái Vô Địch Thiên Hạ 👑',
-    'Mặt V-line Tự Nhiên ✨',
-    'Uống Trà Sữa Không Béo 🧋'
-  ];
 
   if (woodenFishBtn) {
     woodenFishBtn.addEventListener('click', (e) => {
@@ -411,14 +454,12 @@ document.addEventListener('DOMContentLoaded', () => {
       fishCounter.textContent = meritCount;
       playMokugyoSFX();
 
-      // Bonk animation
       woodenFishBtn.classList.add('bonk');
       setTimeout(() => woodenFishBtn.classList.remove('bonk'), 120);
 
-      // Rank update
       const rankSpan = fishRankBadge.querySelector('span');
       if (meritCount >= 100) {
-        rankSpan.textContent = '🔥 Thảo Chim To - Đỉnh Nóc Kịch Trần';
+        rankSpan.textContent = profile.woodenFishMaxRank;
         fishRankBadge.style.borderColor = '#ff4757';
       } else if (meritCount >= 85) {
         rankSpan.textContent = '💎 Đại Tiên Tri Triệu Phú Đô La';
@@ -428,14 +469,14 @@ document.addEventListener('DOMContentLoaded', () => {
         rankSpan.textContent = '🧘‍♀️ Bậc Thầy Giải Nghiệp Phố Núi';
       }
 
-      // Floating Merit Text
       const rect = woodenFishBtn.getBoundingClientRect();
       const x = e.clientX || (rect.left + rect.width / 2);
       const y = e.clientY || rect.top;
 
       const floatEl = document.createElement('div');
       floatEl.className = 'floating-merit';
-      floatEl.textContent = meritBuffs[Math.floor(Math.random() * meritBuffs.length)];
+      const buffs = profile.woodenFishBuffs;
+      floatEl.textContent = buffs[Math.floor(Math.random() * buffs.length)];
       floatEl.style.left = `${x - 40}px`;
       floatEl.style.top = `${y - 20}px`;
       floatEl.style.setProperty('--mx', `${(Math.random() - 0.5) * 60}px`);
@@ -445,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- 7. BẢN CAM KẾT BẠN THÂN (NÚT NÉ CHUỘT THẦN THÁNH) ---
+  // --- 9. BẢN CAM KẾT BẠN THÂN (NÚT NÉ CHUỘT THẦN THÁNH) ---
   const contractRejectBtn = document.getElementById('contractRejectBtn');
   const contractAgreeBtn = document.getElementById('contractAgreeBtn');
   const contractResultMsg = document.getElementById('contractResultMsg');
@@ -456,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Bấm nút Xanh đi đừng cố! 😂',
     'Chạy đâu cho thoát! 🏃‍♀️',
     'Bao bạn thân đi mà! 🥩',
-    'Không thoát được đâu! 🐥',
+    'Không thoát được đâu! 🛞',
     'Bấm nút kia đi nè! 👉'
   ];
 
@@ -467,7 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
     rejectTries++;
     playBellSFX();
 
-    // Random displacement within a bounding box
     const maxOffset = Math.min(window.innerWidth * 0.35, 140);
     const randomX = (Math.random() - 0.5) * maxOffset * 2;
     const randomY = (Math.random() - 0.5) * 90;
@@ -490,11 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       contractRejectBtn.style.display = 'none';
       contractResultMsg.style.display = 'block';
-      contractResultMsg.innerHTML = `
-        🎊 <strong>XÁC NHẬN KÝ KẾT THÀNH CÔNG!</strong> 🎊<br>
-        Bên B (Mai Thảo) đã tự nguyện cam kết bao bạn thân ăn lẩu nướng thả ga!<br>
-        <span style="font-size: 0.95rem; color: #ffeaa7;">Hợp đồng đã được lưu vào sổ Nam Tào, không thể hủy bỏ! 🍻💖</span>
-      `;
+      contractResultMsg.innerHTML = profile.contractConfirmMsg;
       contractResultMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   }
