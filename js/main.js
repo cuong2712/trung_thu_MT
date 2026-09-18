@@ -522,11 +522,76 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   let rejectTries = 0;
+  let isFlooded = false;
+
+  function floodAgreeButtons() {
+    if (isFlooded) return;
+    isFlooded = true;
+
+    if (contractRejectBtn) contractRejectBtn.style.display = 'none';
+
+    const floodTexts = [
+      '✅ Tôi Hoàn Toàn Đồng Ý!',
+      '✅ Ký Đi Đừng Cố Nữa ✍️!',
+      '✅ Chấp Nhận Bao Lẩu Nướng 🥩!',
+      '✅ Không Thoát Được Đâu 😜!',
+      '✅ Đồng Ý 1000% Luôn!',
+      '✅ Bao Bạn Thân Trọn Đời 🍻!',
+      '✅ Bấm Nút Này Nè 👉!',
+      '✅ Đã Bảo Rồi Bấm Đi 😂!',
+      '✅ Chạy Trời Không Khỏi Nắng ☀️!',
+      '✅ Bạn Thân Là Số 1 💖!',
+      '✅ Nhận Kèo Bao Ăn Luôn!',
+      '✅ Hết Đường Lui Rồi Nhé 🏃‍♀️!'
+    ];
+
+    const count = window.innerWidth < 600 ? 18 : 28;
+    for (let i = 0; i < count; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'contract-flood-btn';
+      btn.innerHTML = `<span>${floodTexts[i % floodTexts.length]}</span>`;
+
+      const left = Math.random() * 72 + 6;
+      const top = Math.random() * 80 + 8;
+      const rot = (Math.random() - 0.5) * 28;
+
+      btn.style.left = `${left}vw`;
+      btn.style.top = `${top}vh`;
+      btn.style.setProperty('--rot', `${rot}deg`);
+      btn.style.animationDelay = `${(i * 0.03)}s`;
+
+      btn.addEventListener('click', signContractSuccess);
+      document.body.appendChild(btn);
+    }
+
+    playChimeSFX();
+    spawnConfettiBurst();
+  }
+
+  function signContractSuccess() {
+    playChimeSFX();
+    spawnConfettiBurst();
+    spawnHearts(window.innerWidth / 2, window.innerHeight * 0.7, 24);
+
+    document.querySelectorAll('.contract-flood-btn').forEach(b => b.remove());
+
+    if (contractRejectBtn) contractRejectBtn.style.display = 'none';
+    if (contractResultMsg) {
+      contractResultMsg.style.display = 'block';
+      contractResultMsg.innerHTML = profile.contractConfirmMsg;
+      contractResultMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
 
   function dodgeButton(e) {
     if (e) e.preventDefault();
     rejectTries++;
     playBellSFX();
+
+    if (rejectTries >= 5) {
+      floodAgreeButtons();
+      return;
+    }
 
     const maxOffset = Math.min(window.innerWidth * 0.35, 140);
     const randomX = (Math.random() - 0.5) * maxOffset * 2;
@@ -543,16 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (contractAgreeBtn) {
-    contractAgreeBtn.addEventListener('click', () => {
-      playChimeSFX();
-      spawnConfettiBurst();
-      spawnHearts(window.innerWidth / 2, window.innerHeight * 0.7, 18);
-
-      contractRejectBtn.style.display = 'none';
-      contractResultMsg.style.display = 'block';
-      contractResultMsg.innerHTML = profile.contractConfirmMsg;
-      contractResultMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
+    contractAgreeBtn.addEventListener('click', signContractSuccess);
   }
 
 });
